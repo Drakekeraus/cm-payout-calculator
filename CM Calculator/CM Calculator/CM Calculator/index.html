@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Platinum Society CM Calculator</title>
+
+<style>
+body{
+font-family: Arial, Helvetica, sans-serif;
+background:#0c0c0c;
+color:white;
+padding:40px;
+max-width:1000px;
+margin:auto;
+text-align:center;
+}
+
+.logo{
+width:140px;
+margin-bottom:10px;
+}
+
+h1{
+font-size:36px;
+margin-bottom:5px;
+}
+
+.subtitle{
+color:#aaa;
+margin-bottom:30px;
+max-width:700px;
+margin-left:auto;
+margin-right:auto;
+line-height:1.5;
+}
+
+input, select{
+padding:14px;
+font-size:18px;
+width:320px;
+margin-top:10px;
+border-radius:8px;
+border:none;
+background:#1f1f1f;
+color:white;
+}
+
+label{
+display:block;
+margin-top:18px;
+font-size:14px;
+color:#aaa;
+}
+
+.box{
+background:#171717;
+padding:22px;
+border-radius:12px;
+margin-top:18px;
+border:1px solid #2e2e2e;
+}
+
+.value{
+font-size:30px;
+font-weight:bold;
+}
+
+.small{
+color:#aaa;
+font-size:14px;
+line-height:1.5;
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
+margin-top:20px;
+}
+
+.disclaimer{
+margin-top:30px;
+background:#202020;
+padding:16px;
+border-radius:10px;
+font-size:14px;
+color:#ccc;
+border:1px solid #333;
+text-align:left;
+line-height:1.6;
+}
+
+.footer{
+margin-top:20px;
+font-size:12px;
+color:#777;
+}
+
+@media (max-width: 800px){
+.grid{
+grid-template-columns:1fr;
+}
+input, select{
+width:100%;
+}
+}
+</style>
+</head>
+
+<body>
+
+<img src="logo.png" class="logo" alt="Platinum Society Logo">
+
+<h1>CM Payout Calculator</h1>
+
+<p class="subtitle">
+Enter the number of diamonds a Creator Manager has produced this month. The calculator will estimate their current payout, projected end-of-month payout, next tier target, and whether they are on pace to rank up.
+</p>
+
+<label for="diamonds">Diamonds This Month</label>
+<input id="diamonds" type="number" placeholder="Enter diamonds" oninput="calculate()">
+
+<label for="overridePercent">Manual Percentage Override</label>
+<select id="overridePercent" onchange="calculate()">
+<option value="">Use Automatic Tier</option>
+<option value="30">30%</option>
+<option value="35">35%</option>
+<option value="40">40%</option>
+<option value="45">45%</option>
+<option value="50">50%</option>
+<option value="55">55%</option>
+<option value="60">60%</option>
+</select>
+
+<div class="grid">
+
+<div class="box">
+<div class="small">CM Percentage Tier</div>
+<div id="percent" class="value">30%</div>
+</div>
+
+<div class="box">
+<div class="small">Current Payout Estimate</div>
+<div id="payout" class="value">$0.00</div>
+</div>
+
+<div class="box">
+<div class="small">Projected End-of-Month Diamonds</div>
+<div id="projectedDiamonds" class="value">0</div>
+</div>
+
+<div class="box">
+<div class="small">Projected End-of-Month Payout</div>
+<div id="projectedPayout" class="value">$0.00</div>
+</div>
+
+<div class="box">
+<div class="small">Diamonds to Next Tier</div>
+<div id="nextTierAmount" class="value">0</div>
+<div id="nextTierLabel" class="small">Next tier: 35%</div>
+</div>
+
+<div class="box">
+<div class="small">Rank-Up Prediction</div>
+<div id="rankPrediction" class="value" style="font-size:24px;">Not on pace to rank up</div>
+<div id="rankPredictionDetail" class="small"></div>
+</div>
+
+</div>
+
+<div class="disclaimer">
+<b>Disclaimer:</b> This calculator provides an estimate of potential Creator Manager earnings based on current diamond production and pacing for the month. Actual payouts may vary due to updated diamond totals, platform adjustments, rounding differences, policy updates, or manual corrections. Final payouts are typically higher than this estimate because additional bonuses such as the <b>Activeness Task bonus</b> and <b>Rank-Up incentives</b> are applied at the end of the month.
+</div>
+
+<div class="footer">
+Platinum Society Creator Network
+</div>
+
+<script>
+const tierTable = [
+{diamonds: 14000000, percent: 60},
+{diamonds: 13000000, percent: 55},
+{diamonds: 12000000, percent: 50},
+{diamonds: 11000000, percent: 45},
+{diamonds: 6500000, percent: 40},
+{diamonds: 4000000, percent: 35},
+{diamonds: 0, percent: 30}
+];
+
+const nextTiersAscending = [
+{diamonds: 4000000, percent: 35},
+{diamonds: 6500000, percent: 40},
+{diamonds: 11000000, percent: 45},
+{diamonds: 12000000, percent: 50},
+{diamonds: 13000000, percent: 55},
+{diamonds: 14000000, percent: 60}
+];
+
+function getPercent(d){
+if(d >= 14000000) return 60;
+if(d >= 13000000) return 55;
+if(d >= 12000000) return 50;
+if(d >= 11000000) return 45;
+if(d >= 6500000) return 40;
+if(d >= 4000000) return 35;
+return 30;
+}
+
+function getNextTier(d){
+for(let i = 0; i < nextTiersAscending.length; i++){
+if(d < nextTiersAscending[i].diamonds){
+return nextTiersAscending[i];
+}
+}
+return null;
+}
+
+function formatCurrency(num){
+return num.toLocaleString("en-US", {
+style: "currency",
+currency: "USD"
+});
+}
+
+function formatNumber(num){
+return Math.round(num).toLocaleString("en-US");
+}
+
+function calculate(){
+let diamonds = Number(document.getElementById("diamonds").value) || 0;
+let override = document.getElementById("overridePercent").value;
+
+let autoPercent = getPercent(diamonds);
+let percent = override ? Number(override) : autoPercent;
+
+let revenue = diamonds * 0.01;
+let agencyRevenue = revenue * 0.14;
+let payout = agencyRevenue * (percent / 100);
+
+let today = new Date();
+let day = today.getDate();
+let daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+
+let pace = diamonds / day;
+let projectedDiamonds = pace * daysInMonth;
+
+let projectedAutoPercent = getPercent(projectedDiamonds);
+let projectedPercent = override ? Number(override) : projectedAutoPercent;
+
+let projectedRevenue = projectedDiamonds * 0.01;
+let projectedAgency = projectedRevenue * 0.14;
+let projectedPayout = projectedAgency * (projectedPercent / 100);
+
+document.getElementById("percent").innerText =
+override ? percent + "% (Manual)" : percent + "%";
+
+document.getElementById("payout").innerText = formatCurrency(payout);
+document.getElementById("projectedDiamonds").innerText = formatNumber(projectedDiamonds);
+document.getElementById("projectedPayout").innerText = formatCurrency(projectedPayout);
+
+let nextTier = getNextTier(diamonds);
+
+if(nextTier){
+let remaining = nextTier.diamonds - diamonds;
+document.getElementById("nextTierAmount").innerText = formatNumber(remaining);
+document.getElementById("nextTierLabel").innerText =
+"Next tier: " + nextTier.percent + "% at " + formatNumber(nextTier.diamonds) + " diamonds";
+} else {
+document.getElementById("nextTierAmount").innerText = "Max";
+document.getElementById("nextTierLabel").innerText = "Highest tier already reached";
+}
+
+let rankPrediction = document.getElementById("rankPrediction");
+let rankPredictionDetail = document.getElementById("rankPredictionDetail");
+
+if(override){
+rankPrediction.innerText = "Manual override enabled";
+rankPredictionDetail.innerText =
+"Automatic rank-up prediction is hidden while a manual percentage is selected.";
+} else {
+if(projectedAutoPercent > autoPercent){
+rankPrediction.innerText = "On pace to rank up";
+rankPredictionDetail.innerText =
+"Current tier: " + autoPercent + "% → Projected tier: " + projectedAutoPercent + "% by month end.";
+} else if(autoPercent === 60){
+rankPrediction.innerText = "Highest tier pace";
+rankPredictionDetail.innerText =
+"This Creator Manager is already at the maximum tier.";
+} else {
+let nextProjectedTier = getNextTier(diamonds);
+if(nextProjectedTier){
+rankPrediction.innerText = "Not on pace to rank up";
+rankPredictionDetail.innerText =
+"Needs " + formatNumber(nextProjectedTier.diamonds - projectedDiamonds) +
+" more projected diamonds to reach " + nextProjectedTier.percent + "% by month end.";
+} else {
+rankPrediction.innerText = "Not on pace to rank up";
+rankPredictionDetail.innerText = "";
+}
+}
+}
+}
+
+calculate();
+</script>
+
+</body>
+</html>
